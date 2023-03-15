@@ -1,0 +1,90 @@
+---
+title: "A9_Kam_20166352"
+author: "Sam Kam"
+date: "2023-03-13"
+output: html_document
+---
+# High Performance Computing
+
+[GitHub Repository](https://github.com/samkam48/BIOL432_Assignment8)
+
+## Setup
+
+```{r}
+library(doParallel)
+library(parallel)
+library(foreach)
+```
+
+**1. Run the detectCores() function from the parallel package. This will tell you the number of cores in your system.**
+
+```{r}
+Cores <- parallel::makeCluster(detectCores()) 
+print(Cores)
+```
+
+There are 4 cores in my system. 
+
+**2. Write a standard for loop 4,000 times, and each time calculate the mean of 100,000 random numbers from a normal distribution with mean of 10 and standard deviation of 3.**
+
+```{r}
+beforeLoop <- Sys.time() #assign objects to time the loop
+StandardLoop <- for (i in 1:4000){
+  randomNum <- rnorm(n = 100000, mean = 10, sd = 3)
+  mean(randomNum)
+}
+afterLoop <- Sys.time() #assign objects to time the loop
+```
+
+**3. Calculate the difference between the objects for an estimate of the run time.**
+
+```{r}
+Difference <- afterLoop - beforeLoop
+print(Difference)
+```
+
+**4. Predict how much faster a multi-threaded program will run compared to a serial program, based on the number of threads you have. Use objects in R to calculate this exactly.**
+
+```{r}
+NumThreads <- 4 #define number of threads
+SerialFraction <- 1/NumThreads #serial fraction of program
+
+#speedup using Amdahl's law
+## overall speedup = old time/new time
+Theoretical <- 1/(SerialFraction) + (1 - SerialFraction) / NumThreads
+print(Theoretical)
+```
+
+**5. Now modify your for loop to run the same code in parallel, instead of running each of the 4,000 loops in order.**
+
+```{r}
+#activate multi-threading by specifying the number of cores
+doParallel::registerDoParallel(Cores) 
+
+#foreach loop w/ timers
+preLoop <- Sys.time() #assign objects to time the loop
+ParallelLoop <- foreach(i = 1:4000, .combine = rbind) %dopar%{
+  RandNum <- rnorm(100000, mean = 10, sd = 3)
+  mean(RandNum)
+}
+postLoop <- Sys.time() #assign objects to time the loop
+
+#de-activate multi-threading
+parallel::stopCluster(Cores) 
+```
+
+**6. Add code to calculate the run time for your parallel loop.**
+
+```{r}
+#run time 
+DiffParallel <- postLoop - preLoop
+print(DiffParallel)
+```
+
+**7. Compare the run-time for your parallel loop with the run-time for your serial loop and the theoretical run-time you calculated for the parallel loop based on the number of cores in your computer. Summarize these results in a sentence. Is the theoretical shorter or longer than the actual run-time of your parallel program? Explain why.**
+
+The run time of the parallel loop was 21.82 seconds while the run time for the serial loop was 34.21 seconds.The theoretical run time was 4.19 and this was much shorter than the actual run time of the parallel program.
+
+This could be because it doesn't account for potential delays. If there are issues in the loop, the actual run-time would be longer. In addition, different iterations might take different amounts of time to run. If some threads have more tasks, they might take longer than others causing an increase in the run time.
+
+Note: the run time keeps changing every time I run it, so this is what it was one of the times I ran it. I'm not sure if I have to set the seed, but I don't think that would make the run time the same each time. 
